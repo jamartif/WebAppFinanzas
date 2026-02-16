@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum InvestmentType {
+  FUND
+  STOCK
+  COMMODITY
+  CROWDFUNDING
+}
+
+model Bank {
+  id          Int            @id @default(autoincrement())
+  name        String
+  description String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+  balances    BankBalance[]
+
+  @@map("banks")
+}
+
+model InvestmentCategory {
+  id          Int                  @id @default(autoincrement())
+  name        String
+  type        InvestmentType
+  description String?
+  balances    InvestmentBalance[]
+  income      PassiveIncome[]
+
+  @@map("investment_categories")
+}
+
+model MonthlySnapshot {
+  id          Int                  @id @default(autoincrement())
+  month       DateTime             @db.Date
+  notes       String?
+  createdAt   DateTime             @default(now()) @map("created_at")
+  banks       BankBalance[]
+  investments InvestmentBalance[]
+  income      PassiveIncome[]
+
+  @@unique([month])
+  @@map("monthly_snapshots")
+}
+
+model BankBalance {
+  id         Int             @id @default(autoincrement())
+  snapshotId Int             @map("snapshot_id")
+  bankId     Int             @map("bank_id")
+  balance    Decimal         @db.Decimal(12, 2)
+  snapshot   MonthlySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  bank       Bank            @relation(fields: [bankId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, bankId])
+  @@map("bank_balances")
+}
+
+model InvestmentBalance {
+  id                Int                @id @default(autoincrement())
+  snapshotId        Int                @map("snapshot_id")
+  categoryId        Int                @map("category_id")
+  investedAmount    Decimal            @map("invested_amount") @db.Decimal(12, 2)
+  accumulatedAmount Decimal            @map("accumulated_amount") @db.Decimal(12, 2)
+  currentValue      Decimal            @map("current_value") @db.Decimal(12, 2)
+  snapshot          MonthlySnapshot    @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  category          InvestmentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([snapshotId, categoryId])
+  @@map("investment_balances")
+}
+
+model PassiveIncome {
+  id          Int                @id @default(autoincrement())
+  snapshotId  Int                @map("snapshot_id")
+  categoryId  Int                @map("category_id")
+  amount      Decimal            @db.Decimal(12, 2)
+  source      String
+  description String?
+  snapshot    MonthlySnapshot    @relation(fields: [snapshotId], references: [id], onDelete: Cascade)
+  category    InvestmentCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@map("passive_income")
+}
