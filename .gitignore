@@ -3,3 +3,7 @@ dist/
 .env
 *.log
 pgdata/
+
+# Claude Code
+.claude/settings.local.json
+memory/

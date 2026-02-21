@@ -1,5 +1,5 @@
 import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  ComposedChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
 
 function formatMonth(dateStr) {
@@ -17,7 +17,7 @@ export default function PatrimonyChart({ data }) {
 
   return (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={chartData}>
+      <ComposedChart data={chartData}>
         <CartesianGrid strokeDasharray="3 3" />
         <XAxis dataKey="month" />
         <YAxis />
@@ -25,7 +25,8 @@ export default function PatrimonyChart({ data }) {
         <Legend />
         <Area type="monotone" dataKey="Liquidez" stackId="1" stroke="#3b82f6" fill="#93c5fd" />
         <Area type="monotone" dataKey="Inversiones" stackId="1" stroke="#10b981" fill="#6ee7b7" />
-      </AreaChart>
+        <Line type="monotone" dataKey="Patrimonio" stroke="#f59e0b" strokeWidth={2} dot={false} strokeDasharray="5 3" />
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }
