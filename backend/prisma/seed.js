@@ -21,7 +21,7 @@ async function main() {
 
   // Seed investment categories
   const categories = [
-    { name: 'Fondos Indexados', type: 'FUND', description: 'Fondos indexados propios' },
+    { name: 'Fondos Indexados', type: 'FUND', description: 'Fondos indexados' },
     { name: 'Fondos Indexados 2', type: 'FUND', description: 'Fondos indexados (segundo perfil)' },
     { name: 'Acciones', type: 'STOCK', description: 'Acciones individuales' },
     { name: 'Metales', type: 'COMMODITY', description: 'Inversión en metales preciosos' },
