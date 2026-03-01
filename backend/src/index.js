@@ -6,6 +6,7 @@ const categoryRoutes = require('./routes/categories');
 const snapshotRoutes = require('./routes/snapshots');
 const incomeRoutes = require('./routes/income');
 const dashboardRoutes = require('./routes/dashboard');
+const profileRoutes = require('./routes/profiles');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
@@ -15,6 +16,7 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
+app.use('/api/profiles', profileRoutes);
 app.use('/api/banks', bankRoutes);
 app.use('/api/categories', categoryRoutes);
 app.use('/api/snapshots', snapshotRoutes);

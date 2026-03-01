@@ -14,11 +14,24 @@ enum InvestmentType {
   CROWDFUNDING
 }
 
+model Profile {
+  id         Int                  @id @default(autoincrement())
+  name       String               @unique
+  createdAt  DateTime             @default(now()) @map("created_at")
+  banks      Bank[]
+  categories InvestmentCategory[]
+  snapshots  MonthlySnapshot[]
+
+  @@map("profiles")
+}
+
 model Bank {
   id          Int            @id @default(autoincrement())
   name        String
   description String?
+  profileId   Int            @map("profile_id")
   createdAt   DateTime       @default(now()) @map("created_at")
+  profile     Profile        @relation(fields: [profileId], references: [id], onDelete: Cascade)
   balances    BankBalance[]
 
   @@map("banks")
@@ -29,6 +42,8 @@ model InvestmentCategory {
   name        String
   type        InvestmentType
   description String?
+  profileId   Int                  @map("profile_id")
+  profile     Profile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
   balances    InvestmentBalance[]
   income      PassiveIncome[]
 
@@ -39,12 +54,14 @@ model MonthlySnapshot {
   id          Int                  @id @default(autoincrement())
   month       DateTime             @db.Date
   notes       String?
+  profileId   Int                  @map("profile_id")
   createdAt   DateTime             @default(now()) @map("created_at")
+  profile     Profile              @relation(fields: [profileId], references: [id], onDelete: Cascade)
   banks       BankBalance[]
   investments InvestmentBalance[]
   income      PassiveIncome[]
 
-  @@unique([month])
+  @@unique([profileId, month])
   @@map("monthly_snapshots")
 }
 

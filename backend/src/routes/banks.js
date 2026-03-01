@@ -1,22 +1,28 @@
 const { Router } = require('express');
 const { PrismaClient } = require('@prisma/client');
+const requireProfile = require('../middleware/requireProfile');
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/banks — List all banks
-router.get('/', async (req, res, next) => {
+// GET /api/banks — List banks for a profile
+router.get('/', requireProfile, async (req, res, next) => {
   try {
-    const banks = await prisma.bank.findMany({ orderBy: { id: 'asc' } });
+    const banks = await prisma.bank.findMany({
+      where: { profileId: req.profileId },
+      orderBy: { id: 'asc' },
+    });
     res.json(banks);
   } catch (err) { next(err); }
 });
 
 // POST /api/banks — Create bank
-router.post('/', async (req, res, next) => {
+router.post('/', requireProfile, async (req, res, next) => {
   try {
     const { name, description } = req.body;
-    const bank = await prisma.bank.create({ data: { name, description } });
+    const bank = await prisma.bank.create({
+      data: { name, description, profileId: req.profileId },
+    });
     res.status(201).json(bank);
   } catch (err) { next(err); }
 });

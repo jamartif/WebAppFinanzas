@@ -1,13 +1,15 @@
 const { Router } = require('express');
 const { PrismaClient } = require('@prisma/client');
+const requireProfile = require('../middleware/requireProfile');
 
 const router = Router();
 const prisma = new PrismaClient();
 
 // GET /api/dashboard/summary — Current patrimony summary
-router.get('/summary', async (req, res, next) => {
+router.get('/summary', requireProfile, async (req, res, next) => {
   try {
     const latestSnapshot = await prisma.monthlySnapshot.findFirst({
+      where: { profileId: req.profileId },
       orderBy: { month: 'desc' },
       include: {
         banks: { include: { bank: true } },
@@ -49,7 +51,7 @@ router.get('/summary', async (req, res, next) => {
 
     // Previous month for growth calculation
     const previousSnapshot = await prisma.monthlySnapshot.findFirst({
-      where: { month: { lt: latestSnapshot.month } },
+      where: { profileId: req.profileId, month: { lt: latestSnapshot.month } },
       orderBy: { month: 'desc' },
       include: { banks: true, investments: true },
     });
@@ -85,9 +87,10 @@ router.get('/summary', async (req, res, next) => {
 });
 
 // GET /api/dashboard/evolution — Monthly evolution data for charts
-router.get('/evolution', async (req, res, next) => {
+router.get('/evolution', requireProfile, async (req, res, next) => {
   try {
     const snapshots = await prisma.monthlySnapshot.findMany({
+      where: { profileId: req.profileId },
       orderBy: { month: 'asc' },
       include: {
         banks: true,
@@ -100,7 +103,6 @@ router.get('/evolution', async (req, res, next) => {
       const investmentValue = snap.investments.reduce((s, i) => s + Number(i.currentValue), 0);
       const invested = snap.investments.reduce((s, i) => s + Number(i.accumulatedAmount), 0);
 
-      // Group by category
       const byCategory = {};
       snap.investments.forEach((inv) => {
         byCategory[inv.category.name] = {
@@ -124,9 +126,10 @@ router.get('/evolution', async (req, res, next) => {
 });
 
 // GET /api/dashboard/income — Passive income summary
-router.get('/income', async (req, res, next) => {
+router.get('/income', requireProfile, async (req, res, next) => {
   try {
     const snapshots = await prisma.monthlySnapshot.findMany({
+      where: { profileId: req.profileId },
       orderBy: { month: 'asc' },
       include: {
         income: { include: { category: true } },

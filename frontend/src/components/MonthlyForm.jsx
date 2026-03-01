@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useApi } from '../hooks/useApi';
+import { useProfile } from '../contexts/ProfileContext';
 import {
   getBanks, getCategories, getSnapshot, getSnapshots,
   createSnapshot, updateSnapshot, deleteSnapshot,
@@ -17,9 +18,11 @@ export default function MonthlyForm() {
   const navigate = useNavigate();
   const isEditing = !!id;
 
-  const { data: banks, loading: l1 } = useApi(getBanks);
-  const { data: categories, loading: l2 } = useApi(getCategories);
-  const { data: snapshots, loading: l3 } = useApi(getSnapshots);
+  const { activeProfileId } = useProfile();
+
+  const { data: banks, loading: l1 } = useApi(() => getBanks(activeProfileId), [activeProfileId]);
+  const { data: categories, loading: l2 } = useApi(() => getCategories(activeProfileId), [activeProfileId]);
+  const { data: snapshots, loading: l3 } = useApi(() => getSnapshots(activeProfileId), [activeProfileId]);
 
   const [month, setMonth] = useState(() => {
     const now = new Date();
@@ -30,7 +33,16 @@ export default function MonthlyForm() {
   const [investmentData, setInvestmentData] = useState({});
   const [incomeEntries, setIncomeEntries] = useState([]);
   const [saving, setSaving] = useState(false);
-  const [selectedSnapshot, setSelectedSnapshot] = useState(null);
+
+  // Limpiar estado al cambiar de perfil
+  useEffect(() => {
+    if (!isEditing) {
+      setNotes('');
+      setBankBalances({});
+      setInvestmentData({});
+      setIncomeEntries([]);
+    }
+  }, [activeProfileId, isEditing]);
 
   // Load snapshot data for editing
   useEffect(() => {
@@ -83,7 +95,7 @@ export default function MonthlyForm() {
       if (isEditing) {
         await updateSnapshot(parseInt(id), data);
       } else {
-        await createSnapshot(data);
+        await createSnapshot(activeProfileId, data);
       }
       navigate('/');
     } catch (err) {
@@ -114,7 +126,6 @@ export default function MonthlyForm() {
     setIncomeEntries(updated);
   };
 
-  // Load existing snapshot for editing from list
   const handleSelectSnapshot = (snapId) => {
     if (snapId) navigate(`/snapshot/${snapId}`);
   };
@@ -122,15 +133,15 @@ export default function MonthlyForm() {
   if (l1 || l2 || l3) return <p className="text-gray-500 p-8">Cargando...</p>;
 
   return (
-    <div className="max-w-4xl space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-800">
+    <div className="max-w-4xl space-y-4 lg:space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+        <h2 className="text-xl lg:text-2xl font-bold text-gray-800">
           {isEditing ? 'Editar Registro Mensual' : 'Nuevo Registro Mensual'}
         </h2>
         {!isEditing && snapshots && snapshots.length > 0 && (
           <select
             onChange={(e) => handleSelectSnapshot(e.target.value)}
-            className="border rounded-lg px-3 py-2 text-sm"
+            className="border rounded-lg px-3 py-2 text-sm w-full sm:w-auto"
             defaultValue=""
           >
             <option value="">Editar mes existente...</option>
@@ -143,10 +154,10 @@ export default function MonthlyForm() {
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 lg:space-y-6">
         {/* Month and Notes */}
-        <div className="bg-white rounded-xl shadow p-5 space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl shadow p-4 lg:p-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Mes</label>
               <input
@@ -170,9 +181,9 @@ export default function MonthlyForm() {
         </div>
 
         {/* Bank Balances */}
-        <div className="bg-white rounded-xl shadow p-5">
-          <h3 className="text-lg font-semibold mb-4">Saldos Bancarios</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="bg-white rounded-xl shadow p-4 lg:p-5">
+          <h3 className="text-base lg:text-lg font-semibold mb-4">Saldos Bancarios</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {(banks || []).map((bank) => (
               <div key={bank.id}>
                 <label className="block text-sm font-medium text-gray-700 mb-1">{bank.name}</label>
@@ -190,21 +201,21 @@ export default function MonthlyForm() {
         </div>
 
         {/* Investment Balances */}
-        <div className="bg-white rounded-xl shadow p-5">
-          <h3 className="text-lg font-semibold mb-4">Inversiones</h3>
+        <div className="bg-white rounded-xl shadow p-4 lg:p-5">
+          <h3 className="text-base lg:text-lg font-semibold mb-2">Inversiones</h3>
           <p className="text-sm text-gray-600 mb-4">
-            💡 <strong>Invertido este mes:</strong> Solo la cantidad nueva que aportas este mes. El acumulado se calcula automáticamente.
+            💡 <strong>Invertido este mes:</strong> Solo la cantidad nueva que aportas. El acumulado se calcula automáticamente.
           </p>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {(categories || []).map((cat) => (
-              <div key={cat.id} className="grid grid-cols-3 gap-4 items-end">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {cat.name} <span className="text-xs text-gray-400">({cat.type})</span>
-                  </label>
+              <div key={cat.id} className="grid grid-cols-2 sm:grid-cols-3 gap-3 items-end">
+                {/* Nombre de categoría — ocupa fila completa en móvil */}
+                <div className="col-span-2 sm:col-span-1">
+                  <span className="text-sm font-medium text-gray-700">{cat.name}</span>
+                  <span className="text-xs text-gray-400 ml-1">({cat.type})</span>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Invertido este mes 💰</label>
+                  <label className="block text-xs text-gray-500 mb-1">Invertido 💰</label>
                   <input
                     type="number"
                     step="0.01"
@@ -213,7 +224,7 @@ export default function MonthlyForm() {
                       ...investmentData,
                       [cat.id]: { ...investmentData[cat.id], investedAmount: e.target.value },
                     })}
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
                     placeholder="0.00"
                   />
                 </div>
@@ -227,7 +238,7 @@ export default function MonthlyForm() {
                       ...investmentData,
                       [cat.id]: { ...investmentData[cat.id], currentValue: e.target.value },
                     })}
-                    className="w-full border rounded-lg px-3 py-2"
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
                     placeholder="0.00"
                   />
                 </div>
@@ -237,9 +248,9 @@ export default function MonthlyForm() {
         </div>
 
         {/* Passive Income */}
-        <div className="bg-white rounded-xl shadow p-5">
+        <div className="bg-white rounded-xl shadow p-4 lg:p-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold">Ingresos Pasivos</h3>
+            <h3 className="text-base lg:text-lg font-semibold">Ingresos Pasivos</h3>
             <button type="button" onClick={addIncomeEntry}
               className="bg-purple-600 text-white px-4 py-1 rounded-lg text-sm hover:bg-purple-700">
               + Agregar
@@ -249,63 +260,67 @@ export default function MonthlyForm() {
             <p className="text-gray-400 text-sm">Sin ingresos pasivos este mes</p>
           )}
           {incomeEntries.map((entry, idx) => (
-            <div key={idx} className="grid grid-cols-5 gap-3 mb-3 items-end">
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Categoria</label>
-                <select
-                  value={entry.categoryId}
-                  onChange={(e) => updateIncomeEntry(idx, 'categoryId', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                >
-                  <option value="">Seleccionar</option>
-                  {(categories || []).map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
+            <div key={idx} className="mb-3 p-3 bg-gray-50 rounded-lg sm:p-0 sm:bg-transparent">
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 items-end">
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs text-gray-500 mb-1">Categoria</label>
+                  <select
+                    value={entry.categoryId}
+                    onChange={(e) => updateIncomeEntry(idx, 'categoryId', e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm bg-white"
+                  >
+                    <option value="">Seleccionar</option>
+                    {(categories || []).map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Fuente</label>
+                  <input
+                    value={entry.source}
+                    onChange={(e) => updateIncomeEntry(idx, 'source', e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    placeholder="Ej: MSFT"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Importe</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={entry.amount}
+                    onChange={(e) => updateIncomeEntry(idx, 'amount', e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1">
+                  <label className="block text-xs text-gray-500 mb-1">Descripcion</label>
+                  <input
+                    value={entry.description}
+                    onChange={(e) => updateIncomeEntry(idx, 'description', e.target.value)}
+                    className="w-full border rounded-lg px-3 py-2 text-sm"
+                  />
+                </div>
+                <div className="col-span-2 sm:col-span-1 flex sm:block justify-end">
+                  <button type="button" onClick={() => removeIncomeEntry(idx)}
+                    className="text-red-500 hover:text-red-700 text-sm py-2">Quitar</button>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Fuente</label>
-                <input
-                  value={entry.source}
-                  onChange={(e) => updateIncomeEntry(idx, 'source', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                  placeholder="Ej: MSFT"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Importe</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={entry.amount}
-                  onChange={(e) => updateIncomeEntry(idx, 'amount', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <label className="block text-xs text-gray-500 mb-1">Descripcion</label>
-                <input
-                  value={entry.description}
-                  onChange={(e) => updateIncomeEntry(idx, 'description', e.target.value)}
-                  className="w-full border rounded-lg px-3 py-2"
-                />
-              </div>
-              <button type="button" onClick={() => removeIncomeEntry(idx)}
-                className="text-red-500 hover:text-red-700 text-sm pb-2">Quitar</button>
             </div>
           ))}
         </div>
 
         {/* Actions */}
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-3">
           <button type="submit" disabled={saving}
-            className="bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50">
+            className="flex-1 sm:flex-none bg-blue-600 text-white px-8 py-3 rounded-lg hover:bg-blue-700 font-medium disabled:opacity-50">
             {saving ? 'Guardando...' : isEditing ? 'Actualizar' : 'Guardar Registro'}
           </button>
           {isEditing && (
             <button type="button" onClick={handleDelete}
-              className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700">
+              className="flex-1 sm:flex-none bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700">
               Eliminar
             </button>
           )}

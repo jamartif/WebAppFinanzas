@@ -1,13 +1,14 @@
 const { Router } = require('express');
 const { PrismaClient } = require('@prisma/client');
+const requireProfile = require('../middleware/requireProfile');
 
 const router = Router();
 const prisma = new PrismaClient();
 
-// GET /api/income — List all passive income (optionally filter by snapshotId)
-router.get('/', async (req, res, next) => {
+// GET /api/income — List passive income for a profile
+router.get('/', requireProfile, async (req, res, next) => {
   try {
-    const where = {};
+    const where = { snapshot: { profileId: req.profileId } };
     if (req.query.snapshotId) {
       where.snapshotId = parseInt(req.query.snapshotId);
     }

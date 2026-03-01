@@ -4,7 +4,14 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
 async function main() {
-  // Seed banks
+  // Crear/encontrar perfil "Javier"
+  const profile = await prisma.profile.upsert({
+    where: { name: 'Javier' },
+    update: {},
+    create: { name: 'Javier' },
+  });
+
+  // Seed banks asociados al perfil Javier
   const banks = [
     { name: 'Banco Principal', description: 'Cuenta nómina principal' },
     { name: 'Banco Ahorro', description: 'Cuenta de ahorro' },
@@ -12,14 +19,15 @@ async function main() {
   ];
 
   for (const bank of banks) {
-    await prisma.bank.upsert({
-      where: { id: banks.indexOf(bank) + 1 },
-      update: {},
-      create: bank,
+    const existing = await prisma.bank.findFirst({
+      where: { name: bank.name, profileId: profile.id },
     });
+    if (!existing) {
+      await prisma.bank.create({ data: { ...bank, profileId: profile.id } });
+    }
   }
 
-  // Seed investment categories
+  // Seed investment categories asociadas al perfil Javier
   const categories = [
     { name: 'Fondos Indexados', type: 'FUND', description: 'Fondos indexados propios' },
     { name: 'Fondos Indexados Maria', type: 'FUND', description: 'Fondos indexados de Maria' },
@@ -30,11 +38,12 @@ async function main() {
   ];
 
   for (const category of categories) {
-    await prisma.investmentCategory.upsert({
-      where: { id: categories.indexOf(category) + 1 },
-      update: {},
-      create: category,
+    const existing = await prisma.investmentCategory.findFirst({
+      where: { name: category.name, profileId: profile.id },
     });
+    if (!existing) {
+      await prisma.investmentCategory.create({ data: { ...category, profileId: profile.id } });
+    }
   }
 
   console.log('Seed completed successfully');
